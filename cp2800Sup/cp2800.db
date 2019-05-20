@@ -1,5 +1,4 @@
-###### DB TO KEEP
-record(bi, "$(P):DISABLE")
+record(bi, "$(P)DISABLE")
 {
     field(DESC, "Disable Control")
     field(ZNAM, "Enable")
@@ -9,7 +8,7 @@ record(bi, "$(P):DISABLE")
     field(PINI, "YES")
 }
 
-record(stringin,"$(P):ID") 
+record(stringin,"$(P)ID") 
 {
     field(DESC, "Product ID")
     field(DTYP, "stream")
@@ -17,7 +16,7 @@ record(stringin,"$(P):ID")
     field(SCAN, "10 second")
 }
 
-record(bi, "$(P):POWER")
+record(bi, "$(P)POWER")
 {
     field(DESC, "Compressor Power Status")
     field(DTYP, "stream")
@@ -28,7 +27,7 @@ record(bi, "$(P):POWER")
     field(ZSV,  "MAJOR")
 }
 
-record(longin, "$(P):ERR") 
+record(longin, "$(P)ERR") 
 {
     field(DESC, "Error")
     field(DTYP, "stream")
@@ -40,7 +39,7 @@ record(longin, "$(P):ERR")
     field(LLSV, "MAJOR")
 }
 
-record(longin, "$(P):ELAPSED") 
+record(longin, "$(P)ELAPSED") 
 {
     field(DESC, "Elapsed Time Compressor")
     field(DTYP, "stream")
