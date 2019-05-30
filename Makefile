@@ -1,8 +1,3 @@
-# Makefile for Asyn jsco4180 support
-#
-# Created by znx23966 on Mon Jan 14 15:14:49 2019
-# Based on the Asyn streamSCPI template
-
 TOP = .
 include $(TOP)/configure/CONFIG
 
