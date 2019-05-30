@@ -8,11 +8,75 @@ record(bi, "$(P)DISABLE")
     field(PINI, "YES")
 }
 
+### CMDRSP 
+
+record(mbbiDirect, "$(P)CMDRSP") 
+{
+    field(DESC, "Command Response")
+}
+record(calcout,"$(P):CLRRSP")
+{
+    field(DESC, "Clear Response")
+    field(OUT,  "$(P)CMDRSP PP")
+    field(CALC, "A")
+    field(INPA, "1")
+    field(PINI, "YES")
+}
+record(calc, "$(P)CMD") 
+{
+    field(DESC, "Command")
+    field(CALC, "A>>4")
+    field(INPA, "$(P)CMDRSP MS")
+    field(SCAN, "1 second")
+    field(PHAS, "2")
+    field(FLNK, "$(P)RSPF")
+}
+record(bi, "$(P)RSPF")
+{
+    field(DESC, "Reset since ack power fail")
+    field(INP,  "$(P)CMDRSP.B3 MS")
+    field(ZNAM, "No")
+    field(ONAM, "Yes")
+    field(OSV,  "MAJOR")
+    field(FLNK, "$(P)RSP")
+}
+record(mbbi, "$(P)RSP") 
+{
+    field(DESC, "Response")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)CMDRSP MS")
+    field(NOBT, "3")
+    field(SHFT, "0")
+    field(UNSV, "INVALID")
+    field(ZRVL, "0")
+    field(ONVL, "1")
+    field(TWVL, "2")
+    field(THVL, "3")
+    field(FRVL, "4")
+    field(FVVL, "5")
+    field(SXVL, "6")
+    field(ZRST, "Illegal RSP")
+    field(ZRSV, "MAJOR")
+    field(ONST, "OK")
+    field(TWST, "Invallid Cmd")
+    field(TWSV, "MAJOR")
+    field(THST, "Syntax Error")
+    field(THSV, "MAJOR")
+    field(FRST, "Range Error")
+    field(FRSV, "MINOR")
+    field(FVST, "Inhibited")
+    field(FVSV, "MINOR")
+    field(SXST, "Obsolete Cmd")
+    field(SXSV, "MINOR")
+}
+
+### COMMANDS 
+
 record(stringin,"$(P)ID") 
 {
     field(DESC, "Product ID")
     field(DTYP, "stream")
-    field(INP,  "@cp2800.proto prod_id($(device)) $(port)")
+    field(INP,  "@cp2800.proto prod_id($(P)) $(PORT)")
     field(SCAN, "10 second")
 }
 
@@ -20,7 +84,7 @@ record(bi, "$(P)POWER")
 {
     field(DESC, "Compressor Power Status")
     field(DTYP, "stream")
-    field(INP,  "@cp2800.proto comp_on($(device)) $(port)")
+    field(INP,  "@cp2800.proto comp_on($(P)) $(PORT)")
     field(SCAN, "1 second")
     field(ZNAM, "Off")
     field(ONAM, "On")
@@ -31,7 +95,7 @@ record(longin, "$(P)ERR")
 {
     field(DESC, "Error")
     field(DTYP, "stream")
-    field(INP,  "@cp2800.proto err_code($(device)) $(port)")
+    field(INP,  "@cp2800.proto err_code($(P)) $(PORT)")
     field(SCAN, "10 second")
     field(HIGH, "1")
     field(LOLO, "-1")
@@ -43,7 +107,7 @@ record(longin, "$(P)ELAPSED")
 {
     field(DESC, "Elapsed Time Compressor")
     field(DTYP, "stream")
-    field(INP,  "@cp2800.proto comp_min($(device)) $(port)")
+    field(INP,  "@cp2800.proto comp_min($(P)) $(PORT)")
     field(SCAN, "10 second")
     field(EGU,  "min")
     field(HIHI, "1000000")
@@ -60,19 +124,19 @@ record(longin, "$(P)ELAPSED")
 
 ######### FOR FUTURE USE
 
-# record(longin, "$(device):IN:TRAW") 
+# record(longin, "$(P):IN:TRAW") 
 # {
 #     field(DESC, "Inp Water Temperature (0.1C)")
 #     field(DTYP, "stream")
-#     field(INP,  "@cp2800.proto temp_0($(device)) $(port)")
+#     field(INP,  "@cp2800.proto temp_0($(P)) $(PORT)")
 #     field(SCAN, "1 second")
-#     field(FLNK, "$(device):IN:T")
+#     field(FLNK, "$(P):IN:T")
 # }
-# record(ai, "$(device):IN:T") 
+# record(ai, "$(P):IN:T") 
 # {
 #     field(DESC, "Input Water Temperature")
 #     field(DTYP, "Raw Soft Channel")
-#     field(INP,  "$(device):IN:TRAW MS")
+#     field(INP,  "$(P):IN:TRAW MS")
 #     field(ASLO, "0.1")
 #     field(HOPR, "100")
 #     field(LOPR, "0")
@@ -89,19 +153,19 @@ record(longin, "$(P)ELAPSED")
 #     field(ADEL, "0.5")
 # }
 
-# record(longin, "$(device):OUT:TRAW") 
+# record(longin, "$(P):OUT:TRAW") 
 # {
 #     field(DESC, "Out Water Temperature (0.1C)")
 #     field(DTYP, "stream")
-#     field(INP,  "@cp2800.proto temp_1($(device)) $(port)")
+#     field(INP,  "@cp2800.proto temp_1($(P)) $(PORT)")
 #     field(SCAN, "1 second")
-#     field(FLNK, "$(device):OUT:T")
+#     field(FLNK, "$(P):OUT:T")
 # }
-# record(ai, "$(device):OUT:T") 
+# record(ai, "$(P):OUT:T") 
 # {
 #     field(DESC, "Output Water Temperature")
 #     field(DTYP, "Raw Soft Channel")
-#     field(INP,  "$(device):OUT:TRAW MS")
+#     field(INP,  "$(P):OUT:TRAW MS")
 #     field(ASLO, "0.1")
 #     field(HOPR, "100")
 #     field(LOPR, "0")
@@ -118,19 +182,19 @@ record(longin, "$(P)ELAPSED")
 #     field(ADEL, "0.5")
 # }
 
-# record(longin, "$(device):HE:TRAW") 
+# record(longin, "$(P):HE:TRAW") 
 # {
 #     field(DESC, "He Temperature (0.1C)")
 #     field(DTYP, "stream")
-#     field(INP,  "@cp2800.proto temp_2($(device)) $(port)")
+#     field(INP,  "@cp2800.proto temp_2($(P)) $(PORT)")
 #     field(SCAN, "1 second")
-#     field(FLNK, "$(device):HE:T")
+#     field(FLNK, "$(P):HE:T")
 # }
-# record(ai, "$(device):HE:T") 
+# record(ai, "$(P):HE:T") 
 # {
 #     field(DESC, "Helium Temperature")
 #     field(DTYP, "Raw Soft Channel")
-#     field(INP,  "$(device):HE:TRAW MS")
+#     field(INP,  "$(P):HE:TRAW MS")
 #     field(ASLO, "0.1")
 #     field(HOPR, "100")
 #     field(LOPR, "-300")
@@ -148,19 +212,19 @@ record(longin, "$(P)ELAPSED")
 # }
 
 # #
-# record(longin, "$(device):OIL:TRAW") 
+# record(longin, "$(P):OIL:TRAW") 
 # {
 #     field(DESC, "Oil Temperature (0.1C)")
 #     field(DTYP, "stream")
-#     field(INP,  "@cp2800.proto temp_3($(device)) $(port)")
+#     field(INP,  "@cp2800.proto temp_3($(P)) $(PORT)")
 #     field(SCAN, "1 second")
-#     field(FLNK, "$(device):OIL:T")
+#     field(FLNK, "$(P):OIL:T")
 # }
-# record(ai, "$(device):OIL:T") 
+# record(ai, "$(P):OIL:T") 
 # {
 #     field(DESC, "Oil Temperature")
 #     field(DTYP, "Raw Soft Channel")
-#     field(INP,  "$(device):OIL:TRAW MS")
+#     field(INP,  "$(P):OIL:TRAW MS")
 #     field(ASLO, "0.1")
 #     field(HOPR, "100")
 #     field(LOPR, "0")
@@ -177,19 +241,19 @@ record(longin, "$(P)ELAPSED")
 #     field(ADEL, "0.5")
 # }
 
-# record(longin, "$(device):LS:PAVRAW") 
+# record(longin, "$(P):LS:PAVRAW") 
 # {
 #     field(DESC, "Av LS Pressure (0.1psi)")
 #     field(DTYP, "stream")
-#     field(INP,  "@cp2800.proto h_alp($(device)) $(port)")
+#     field(INP,  "@cp2800.proto h_alp($(P)) $(PORT)")
 #     field(SCAN, "10 second")
-#     field(FLNK, "$(device):LS:PAV")
+#     field(FLNK, "$(P):LS:PAV")
 # }
-# record(ai, "$(device):LS:PAV") 
+# record(ai, "$(P):LS:PAV") 
 # {
 #     field(DESC, "Average Low Side Pressure")
 #     field(DTYP, "Raw Soft Channel")
-#     field(INP,  "$(device):LS:PAVRAW MS")
+#     field(INP,  "$(P):LS:PAVRAW MS")
 #     field(ASLO, "0.1")
 #     field(HOPR, "100")
 #     field(LOPR, "0")
@@ -207,19 +271,19 @@ record(longin, "$(P)ELAPSED")
 # }
 
 # #
-# record(longin, "$(device):HS:PAVRAW") 
+# record(longin, "$(P):HS:PAVRAW") 
 # {
 #     field(DESC, "Av HS Pressure (0.1psi)")
 #     field(DTYP, "stream")
-#     field(INP,  "@cp2800.proto h_ahp($(device)) $(port)")
+#     field(INP,  "@cp2800.proto h_ahp($(P)) $(PORT)")
 #     field(SCAN, "10 second")
-#     field(FLNK, "$(device):HS:PAV")
+#     field(FLNK, "$(P):HS:PAV")
 # }
-# record(ai, "$(device):HS:PAV") 
+# record(ai, "$(P):HS:PAV") 
 # {
 #     field(DESC, "Average High Side Pressure")
 #     field(DTYP, "Raw Soft Channel")
-#     field(INP,  "$(device):HS:PAVRAW MS")
+#     field(INP,  "$(P):HS:PAVRAW MS")
 #     field(ASLO, "0.1")
 #     field(HOPR, "100")
 #     field(LOPR, "0")

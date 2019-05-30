@@ -14,7 +14,7 @@ DLY = 20; # delay between commands - may make comms more reliable
 
 ADR = 0x10;
 CMD = 0x80;
-RSP = 0x81;
+RSP = 0x89;
 #
 CP_CMD = STX $ADR $CMD;
 CP_RSP = STX $ADR $RSP;
@@ -48,13 +48,32 @@ test { out "%s%1!"; in "%1!%40c"; }
 #
 # Extract the CMD_RSP byte on mismatch
 #
-@mismatch  { in "%1!" STX $ADR "%(\$1:CMDRSP.VAL)01r%*30c"; }
+@mismatch  { in "%1!" STX $ADR "%(\$1CMDRSP.VAL)01r%*30c"; }
 
 
-prod_id { out STX $ADR 0x30 "%01<sum8>%1!"; in "%*1!" STX $ADR 0x31 "%40c"; wait $DLY; }
-comp_on  { out $CP_CMD $COMP_ON  "%01<sum8>%1!"; in "%1!" $CP_RSP $COMP_ON  "%4r%01<sum8>"; wait $DLY; }
-err_code { out $CP_CMD $ERR_CODE "%01<sum8>%1!"; in "%1!" $CP_RSP $ERR_CODE "%4r%01<sum8>"; wait $DLY; }
-comp_min { out $CP_CMD $COMP_MIN "%01<sum8>%1!"; in "%1!" $CP_RSP $COMP_MIN "%4r%01<sum8>"; wait $DLY; }
+prod_id { 
+    out STX $ADR 0x30 "%01<sum8>%1!"; 
+    in "%*1!" STX $ADR 0x31 "%40c"; 
+    wait $DLY;
+}
+
+comp_on  { 
+    out $CP_CMD $COMP_ON  "%01<sum8>%1!"; 
+    in "%1!" $CP_RSP $COMP_ON  "%4r%01<sum8>"; 
+    wait $DLY; 
+}
+
+err_code { 
+    out $CP_CMD $ERR_CODE "%01<sum8>%1!"; 
+    in "%1!" $CP_RSP $ERR_CODE "%4r%01<sum8>"; 
+    wait $DLY; 
+}
+
+comp_min { 
+    out $CP_CMD $COMP_MIN "%01<sum8>%1!"; 
+    in "%1!" $CP_RSP $COMP_MIN "%4r%01<sum8>"; 
+    wait $DLY; 
+}
 
 
 # temp_0   { out $CP_CMD $TEMP_0   "%01<sum8>%1!"; in "%1!" $CP_RSP $TEMP_0   "%4r%01<sum8>"; wait $DLY; }
