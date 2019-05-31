@@ -1,3 +1,12 @@
+record(bo, "$(P)SIM")
+{
+    field(SCAN, "Passive")
+    field(DTYP, "Soft Channel")
+    field(ZNAM, "NO")
+    field(ONAM, "YES")
+    field(VAL, "$(RECSIM=0)")
+}
+
 record(bi, "$(P)DISABLE")
 {
     field(DESC, "Disable Control")
@@ -68,6 +77,9 @@ record(mbbi, "$(P)RSP")
     field(FVSV, "MINOR")
     field(SXST, "Obsolete Cmd")
     field(SXSV, "MINOR")
+    field(SIML, "$(P)SIM")
+    field(SIOL, "$(P)SIM:RSP")
+    field(SDIS, "$(P)DISABLE")
 }
 
 ### COMMANDS 
@@ -78,6 +90,9 @@ record(stringin,"$(P)ID")
     field(DTYP, "stream")
     field(INP,  "@cp2800.proto prod_id($(P)) $(PORT)")
     field(SCAN, "10 second")
+    field(SIML, "$(P)SIM")
+    field(SIOL, "$(P)SIM:ID")
+    field(SDIS, "$(P)DISABLE")
 }
 
 record(bi, "$(P)POWER")
@@ -89,6 +104,9 @@ record(bi, "$(P)POWER")
     field(ZNAM, "Off")
     field(ONAM, "On")
     field(ZSV,  "MAJOR")
+    field(SIML, "$(P)SIM")
+    field(SIOL, "$(P)SIM:POWER")
+    field(SDIS, "$(P)DISABLE")
 }
 
 record(longin, "$(P)ERR") 
@@ -101,6 +119,9 @@ record(longin, "$(P)ERR")
     field(LOLO, "-1")
     field(HSV,  "MINOR")
     field(LLSV, "MAJOR")
+    field(SIML, "$(P)SIM")
+    field(SIOL, "$(P)SIM:ERR")
+    field(SDIS, "$(P)DISABLE")
 }
 
 record(longin, "$(P)ELAPSED") 
@@ -119,6 +140,9 @@ record(longin, "$(P)ELAPSED")
     field(HSV,  "MINOR")
     field(LSV,  "MINOR")
     field(ADEL, "5")
+    field(SIML, "$(P)SIM")
+    field(SIOL, "$(P)SIM:ELAPSED")
+    field(SDIS, "$(P)DISABLE")
 }
 
 
@@ -299,3 +323,36 @@ record(longin, "$(P)ELAPSED")
 #     field(LSV,  "MINOR")
 #     field(ADEL, "0.5")
 # }
+
+### SIMULATION RECORDS ###
+
+record(mbbi,"$(P)SIM:RSP")
+{
+    field(SCAN, "Passive")
+    field(DTYP, "Soft Channel")
+}
+
+record(bi,"$(P)SIM:POWER")
+{
+    field(SCAN, "Passive")
+    field(DTYP, "Soft Channel")
+}
+
+record(stringin,"$(P)SIM:ID")
+{
+    field(SCAN, "Passive")
+    field(DTYP, "Soft Channel")
+}
+
+record(longin,"$(P)SIM:ELAPSED")
+{
+    field(SCAN, "Passive")
+    field(DTYP, "Soft Channel")
+}
+
+record(longin,"$(P)SIM:ERR")
+{
+    field(SCAN, "Passive")
+    field(DTYP, "Soft Channel")
+}
+
