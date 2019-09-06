@@ -42,7 +42,6 @@ COMP_MIN  = 'c' 0x45 0x4C 0;         # Elapsed compressor minutes
 
 
 
-#test { out "%s"; in "%40c"; }
 test { out "%s%1!"; in "%1!%40c"; }
 
 #
@@ -75,13 +74,5 @@ comp_min {
     wait $DLY; 
 }
 
-
-# temp_0   { out $CP_CMD $TEMP_0   "%01<sum8>%1!"; in "%1!" $CP_RSP $TEMP_0   "%4r%01<sum8>"; wait $DLY; }
-# temp_1   { out $CP_CMD $TEMP_1   "%01<sum8>%1!"; in "%1!" $CP_RSP $TEMP_1   "%4r%01<sum8>"; wait $DLY; }
-# temp_2   { out $CP_CMD $TEMP_2   "%01<sum8>%1!"; in "%1!" $CP_RSP $TEMP_2   "%4r%01<sum8>"; wait $DLY; }
-# temp_3   { out $CP_CMD $TEMP_3   "%01<sum8>%1!"; in "%1!" $CP_RSP $TEMP_3   "%4r%01<sum8>"; wait $DLY; }
-
-# h_alp    { out $CP_CMD $H_ALP    "%01<sum8>%1!"; in "%1!" $CP_RSP $H_ALP    "%4r%01<sum8>"; wait $DLY; }
-# h_ahp    { out $CP_CMD $H_AHP    "%01<sum8>%1!"; in "%1!" $CP_RSP $H_AHP    "%4r%01<sum8>"; wait $DLY; }
 
 
