@@ -1,0 +1,178 @@
+record(bo, "$(P)SIM")
+{
+    field(SCAN, "Passive")
+    field(DTYP, "Soft Channel")
+    field(ZNAM, "NO")
+    field(ONAM, "YES")
+    field(VAL, "$(RECSIM=0)")
+}
+
+record(bi, "$(P)DISABLE")
+{
+    field(DESC, "Disable Control")
+    field(ZNAM, "Enable")
+    field(ONAM, "Disable")
+    field(OSV,  "MAJOR")
+    field(VAL,  "0")
+    field(PINI, "YES")
+}
+
+### CMDRSP 
+
+record(mbbiDirect, "$(P)COMMAND_RESPONSE") 
+{
+    field(DESC, "Command Response")
+}
+record(calcout,"$(P):CLEAR_RESPONSE")
+{
+    field(DESC, "Clear Response")
+    field(OUT,  "$(P)CMDRSP PP")
+    field(CALC, "A")
+    field(INPA, "1")
+    field(PINI, "YES")
+}
+record(calc, "$(P)COMMAND") 
+{
+    field(DESC, "Command")
+    field(CALC, "A>>4")
+    field(INPA, "$(P)CMDRSP MS")
+    field(SCAN, "1 second")
+    field(PHAS, "2")
+    field(FLNK, "$(P)RSPF")
+}
+record(bi, "$(P)RESET_SINCE_POWER_FAIL")
+{
+    field(DESC, "Reset since ack power fail")
+    field(INP,  "$(P)CMDRSP.B3 MS")
+    field(ZNAM, "No")
+    field(ONAM, "Yes")
+    field(OSV,  "MAJOR")
+    field(FLNK, "$(P)RSP")
+}
+record(mbbi, "$(P)RESPONSE") 
+{
+    field(DESC, "Response")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)CMDRSP MS")
+    field(NOBT, "3")
+    field(SHFT, "0")
+    field(UNSV, "INVALID")
+    field(ZRVL, "0")
+    field(ONVL, "1")
+    field(TWVL, "2")
+    field(THVL, "3")
+    field(FRVL, "4")
+    field(FVVL, "5")
+    field(SXVL, "6")
+    field(ZRST, "Illegal RSP")
+    field(ZRSV, "MAJOR")
+    field(ONST, "OK")
+    field(TWST, "Invalid Cmd")
+    field(TWSV, "MAJOR")
+    field(THST, "Syntax Error")
+    field(THSV, "MAJOR")
+    field(FRST, "Range Error")
+    field(FRSV, "MINOR")
+    field(FVST, "Inhibited")
+    field(FVSV, "MINOR")
+    field(SXST, "Obsolete Cmd")
+    field(SXSV, "MINOR")
+    field(SIML, "$(P)SIM")
+    field(SIOL, "$(P)SIM:RSP")
+    field(SDIS, "$(P)DISABLE")
+}
+
+### COMMANDS 
+
+record(stringin,"$(P)ID") 
+{
+    field(DESC, "Product ID")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto prod_id($(P)) $(PORT)")
+    field(PINI, "1")
+    field(SIML, "$(P)SIM")
+    field(SIOL, "$(P)SIM:ID")
+    field(SDIS, "$(P)DISABLE")
+}
+
+record(bi, "$(P)POWER")
+{
+    field(DESC, "Compressor Power Status")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto comp_on($(P)) $(PORT)")
+    field(SCAN, "1 second")
+    field(ZNAM, "Off")
+    field(ONAM, "On")
+    field(ZSV,  "MAJOR")
+    field(SIML, "$(P)SIM")
+    field(SIOL, "$(P)SIM:POWER")
+    field(SDIS, "$(P)DISABLE")
+}
+
+record(longin, "$(P)ERR") 
+{
+    field(DESC, "Error")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto err_code($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(HIGH, "1")
+    field(LOLO, "-1")
+    field(HSV,  "MINOR")
+    field(LLSV, "MAJOR")
+    field(SIML, "$(P)SIM")
+    field(SIOL, "$(P)SIM:ERR")
+    field(SDIS, "$(P)DISABLE")
+}
+
+record(longin, "$(P)ELAPSED") 
+{
+    field(DESC, "Elapsed Time Compressor")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto comp_min($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(EGU,  "min")
+    field(HIHI, "1000000")
+    field(LOLO, "-1")
+    field(HIGH, "500000")
+    field(HHSV, "MAJOR")
+    field(LLSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(ADEL, "5")
+    field(SIML, "$(P)SIM")
+    field(SIOL, "$(P)SIM:ELAPSED")
+    field(SDIS, "$(P)DISABLE")
+}
+
+
+### SIMULATION RECORDS ###
+
+record(mbbi,"$(P)SIM:RSP")
+{
+    field(SCAN, "Passive")
+    field(DTYP, "Soft Channel")
+}
+
+record(bi,"$(P)SIM:POWER")
+{
+    field(SCAN, "Passive")
+    field(DTYP, "Soft Channel")
+}
+
+record(stringin,"$(P)SIM:ID")
+{
+    field(SCAN, "Passive")
+    field(DTYP, "Soft Channel")
+}
+
+record(longin,"$(P)SIM:ELAPSED")
+{
+    field(SCAN, "Passive")
+    field(DTYP, "Soft Channel")
+}
+
+record(longin,"$(P)SIM:ERR")
+{
+    field(SCAN, "Passive")
+    field(DTYP, "Soft Channel")
+}
+

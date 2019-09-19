@@ -1,0 +1,86 @@
+# cp2800.proto
+# Stream Device Protocol for the Cryomech CP2800 series compressor
+# Pete Owens 6/1/2012
+
+#
+# NOTE: Stream device must include SMDP format converter "%!"
+#
+
+terminator   = CR;
+replytimeout = 1000;
+readtimeout  = 1000;
+
+DLY = 20; # delay between commands - may make comms more reliable
+
+ADR = 0x10; # address of device, just set to 0x10 here, but valid range is 0x10 to 0xFE, 0xFF indicates extending the ADR field by 1 byte
+CMD = 0x80; # CMD byte, indicates that a command is being sent
+RSP = 0x89; # RSP byte, indicates that a response is being sent
+#
+CP_CMD = STX $ADR $CMD; # start of string to send when issuing a command
+CP_RSP = STX $ADR $RSP; # start of string recieved when getting response
+
+#
+# Data Dictionary Entries
+# Byte 1:    'a' = write 'c' = read
+# Bytes 2-3: hash of dictionary variable
+# Byte 4:    index (for arrays)
+# Bites 5-8: output value (for write commands only)
+#
+
+COMP_ON   = 'c' 0x5F 0x95 0;         # True if compessor is on
+ERR_CODE  = 'c' 0x65 0xA4 0;         # 0 = no error
+COMP_MIN  = 'c' 0x45 0x4C 0;         # Elapsed compressor minutes
+
+
+# TEMP_0    = 'c' 0x0D 0x8F 0;         # Input water temperature (0.1 degC)
+# TEMP_1    = 'c' 0x0D 0x8F 1;         # Output water temperature (0.1 degC)
+# TEMP_2    = 'c' 0x0D 0x8F 2;         # Helium temperature (0.1 degC)
+# TEMP_3    = 'c' 0x0D 0x8F 3;         # Oil temperature (0.1 degC)
+# H_ALP     = 'c' 0xBB 0x94 0;         # Average low side pressure (0.1 PSIA)
+# H_AHP     = 'c' 0x7E 0x90 0;         # Average high side pressure (0.1 PSIA)
+
+
+
+
+test { out "%s%1!"; in "%1!%40c"; }
+
+#
+# Extract the CMD_RSP byte on mismatch
+#
+@mismatch  { in "%1!" STX $ADR "%(\$1CMDRSP.VAL)01r%*30c"; }
+
+# This a binary communications protocol, which described in the CP2800 Compressors wiki page.
+
+prod_id { 
+    out STX $ADR 0x30 "%01<sum8>%1!"; # start of text - ADR byte - address for prod id value - name of machine (e.g. IN:NDXHIFI)
+    in "%*1!" STX $ADR 0x31 "%40c"; # start of text - ADR byte - address for prod id value - machine product id
+    wait $DLY;
+}
+
+comp_on  { 
+    out $CP_CMD $COMP_ON  "%01<sum8>%1!"; # CMD start - address for comp on value - name of machine (e.g. IN:NDXHIFI)
+    in "%1!" $CP_RSP $COMP_ON  "%4r%01<sum8>"; # RSP start - comp on address - ‘1’ if compressor is on, else 0
+    wait $DLY; 
+}
+
+err_code { 
+    out $CP_CMD $ERR_CODE "%01<sum8>%1!"; # CMD start - address for error code value - name of machine (e.g. IN:NDXHIFI)
+    in "%1!" $CP_RSP $ERR_CODE "%4r%01<sum8>"; # RSP start - error code address - error code (see below)
+    wait $DLY; 
+}
+
+comp_min { 
+    out $CP_CMD $COMP_MIN "%01<sum8>%1!"; # CMD start - address for comp min value - name of machine (e.g. IN:NDXHIFI)
+    in "%1!" $CP_RSP $COMP_MIN "%4r%01<sum8>"; # RSP start - address for comp min value - elapsed time compressors has been running in minutes
+    wait $DLY; 
+}
+
+#
+# ERROR CODES
+#
+# 0 No error
+# 1 IC2 bus failure. Cycle power if this occurs. If this persists, contact factory
+# 2 5V power too high - occurs if power is above 5.25V. Contact factory
+# 3 5V power too high - occurs if power is below 4.75V. Contact factory
+# 4 compressor is in lockout mode due to too many errors in a certain time. Cannot restart until a code is enterred. Contact factory 
+# 5 order of phase power is wrong. Rewire the compressor input by switching around 2 of the power wires
