@@ -49,6 +49,7 @@ test { out "%s%1!"; in "%1!%40c"; }
 #
 @mismatch  { in "%1!" STX $ADR "%(\$1CMDRSP.VAL)01r%*30c"; }
 
+# This a binary communications protocol, which described in the CP2800 Compressors wiki page.
 
 prod_id { 
     out STX $ADR 0x30 "%01<sum8>%1!"; # start of text - ADR byte - address for prod id value - name of machine (e.g. IN:NDXHIFI)
