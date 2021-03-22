@@ -47,7 +47,7 @@ test { out "%s%1!"; in "%1!%40c"; }
 #
 # Extract the CMD_RSP byte on mismatch
 #
-@mismatch  { in "%1!" STX $ADR "%(\$1CMDRSP.VAL)01r%*30c"; }
+@mismatch  { in "%1!" STX $ADR "%(\$1COMMAND_RESPONSE.VAL)01r%*30c"; }
 
 # This a binary communications protocol, which described in the CP2800 Compressors wiki page.
 

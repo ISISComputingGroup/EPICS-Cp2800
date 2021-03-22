@@ -38,7 +38,7 @@ record(calc, "$(P)COMMAND")
     field(INPA, "$(P)CMDRSP MS")
     field(SCAN, "1 second")
     field(PHAS, "2")
-    field(FLNK, "$(P)RSPF")
+    field(FLNK, "$(P)RSPF.PROC")
 }
 record(bi, "$(P)RESET_SINCE_POWER_FAIL")
 {
@@ -47,7 +47,7 @@ record(bi, "$(P)RESET_SINCE_POWER_FAIL")
     field(ZNAM, "No")
     field(ONAM, "Yes")
     field(OSV,  "MAJOR")
-    field(FLNK, "$(P)RSP")
+    field(FLNK, "$(P)RSP.PROC")
 }
 record(mbbi, "$(P)RESPONSE") 
 {
