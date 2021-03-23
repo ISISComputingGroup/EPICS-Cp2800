@@ -23,7 +23,7 @@ record(mbbiDirect, "$(P)COMMAND_RESPONSE")
 {
     field(DESC, "Command Response")
 }
-record(calcout,"$(P):CLEAR_RESPONSE")
+record(calcout,"$(P)CLEAR_RESPONSE")
 {
     field(DESC, "Clear Response")
     field(OUT,  "$(P)COMMAND_RESPONSE PP")
