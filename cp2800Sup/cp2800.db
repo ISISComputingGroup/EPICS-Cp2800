@@ -1,3 +1,22 @@
+# cp2800.template
+# Template database for the Cryomech CP2800 series compressor
+# Originally from Pete Owens 8/1/2012
+#
+# NOTE: Stream device must include SMPD format converter "%!"
+#
+# substitutions:
+# P  - device prefix
+# PORT    - asyn port
+#
+
+#record(stringout, "$(P)TEST") 
+#{
+#    field(DESC, "TEST")
+#    field(DTYP, "stream")
+#    field(OUT,  "@cp2800.proto test($(P)) $(PORT)")
+#}
+
+
 record(bo, "$(P)SIM")
 {
     field(SCAN, "Passive")
@@ -7,6 +26,9 @@ record(bo, "$(P)SIM")
     field(VAL, "$(RECSIM=0)")
 }
 
+################################################################################
+# Disable Control
+#
 record(bi, "$(P)DISABLE")
 {
     field(DESC, "Disable Control")
@@ -16,44 +38,51 @@ record(bi, "$(P)DISABLE")
     field(VAL,  "0")
     field(PINI, "YES")
 }
-
-### COMMAND_RESPONSE 
-
-record(mbbiDirect, "$(P)COMMAND_RESPONSE") 
+################################################################################
+# CMDRSP - Command Response byte 
+# Parse on mismatch
+#
+record(mbbiDirect, "$(P)CMDRSP") 
 {
     field(DESC, "Command Response")
+    alias("$(P)COMMAND_RESPONSE")
 }
-record(calcout,"$(P)CLEAR_RESPONSE")
+
+record(calcout,"$(P)CLRRSP")
 {
     field(DESC, "Clear Response")
-    field(OUT,  "$(P)COMMAND_RESPONSE PP")
+    field(OUT,  "$(P)CMDRSP PP")
     field(CALC, "A")
     field(INPA, "1")
     field(PINI, "YES")
+    alias("$(P)CLEAR_RESPONSE")
 }
-record(calc, "$(P)COMMAND") 
+
+record(calc, "$(P)CMD") 
 {
     field(DESC, "Command")
     field(CALC, "A>>4")
-    field(INPA, "$(P)COMMAND_RESPONSE MS")
+    field(INPA, "$(P)CMDRSP MS")
     field(SCAN, "1 second")
     field(PHAS, "2")
-    field(FLNK, "$(P)RESET_SINCE_POWER_FAIL.PROC")
+    field(FLNK, "$(P)RSPF")
+    alias("$(P)COMMAND")
 }
-record(bi, "$(P)RESET_SINCE_POWER_FAIL")
+record(bi, "$(P)RSPF")
 {
     field(DESC, "Reset since ack power fail")
-    field(INP,  "$(P)COMMAND_RESPONSE.B3 MS")
+    field(INP,  "$(P)CMDRSP.B3 MS")
     field(ZNAM, "No")
     field(ONAM, "Yes")
     field(OSV,  "MAJOR")
-    field(FLNK, "$(P)RESPONSE.PROC")
+    field(FLNK, "$(P)RSP")
+    alias("$(P)RESET_SINCE_POWER_FAIL")
 }
-record(mbbi, "$(P)RESPONSE") 
+record(mbbi, "$(P)RSP") 
 {
     field(DESC, "Response")
     field(DTYP, "Raw Soft Channel")
-    field(INP,  "$(P)COMMAND_RESPONSE MS")
+    field(INP,  "$(P)CMDRSP MS")
     field(NOBT, "3")
     field(SHFT, "0")
     field(UNSV, "INVALID")
@@ -77,25 +106,1139 @@ record(mbbi, "$(P)RESPONSE")
     field(FVSV, "MINOR")
     field(SXST, "Obsolete Cmd")
     field(SXSV, "MINOR")
-    field(SIML, "$(P)SIM")
-    field(SIOL, "$(P)SIM:RSP")
-    field(SDIS, "$(P)DISABLE")
+    alias("$(P)RESPONSE")
 }
-
-### COMMANDS 
-
+################################################################################
+#
+# SMDP commands
+# USE STRINGS FOR NOW - ACUAL FORMAT WILL NEED CHECKING
+#
+################################################################################
+# ID - Sycon Product ID
+#
 record(stringin,"$(P)ID") 
 {
     field(DESC, "Product ID")
     field(DTYP, "stream")
     field(INP,  "@cp2800.proto prod_id($(P)) $(PORT)")
-    field(PINI, "1")
+    field(SCAN, "10 second")
     field(SIML, "$(P)SIM")
     field(SIOL, "$(P)SIM:ID")
     field(SDIS, "$(P)DISABLE")
 }
-
-record(bi, "$(P)POWER")
+################################################################################
+# VERSION - Software version
+#
+record(stringin,"$(P)VERSION") 
+{
+    field(DESC, "Software version")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto version($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(SIML, "$(P)SIM")
+    field(SIOL, "$(P)SIM:VERSION")
+    field(SDIS, "$(P)DISABLE")
+}
+################################################################################
+# RESET
+#
+record(bo, "$(P)RESET")
+{
+    field(DESC, "Reset")
+    field(DTYP, "stream")
+    field(OUT,  "@cp2800.proto reset($(P)) $(PORT)")
+    field(ZNAM, "Reset")
+    field(SDIS, "$(P)DISABLE")
+    field(SIML, "$(P)SIM")
+    field(SIOL, "$(P)SIM:RESET")
+    field(FLNK, "$(P)ACKPF")
+}
+################################################################################
+# ACKPF - Clear RSPF bit
+#
+record(bo, "$(P)ACKPF")
+{
+    field(DESC, "Clear RSPF bit")
+    field(DTYP, "stream")
+    field(OUT,  "@cp2800.proto ack_pf($(P)) $(PORT)")
+# automatically reset - to maintain comms
+#    field(SCAN, "10 second")
+    field(ZNAM, "Clear")
+    field(SDIS, "$(P)DISABLE")
+    field(FLNK, "$(P)CLRRSP")
+}
+################################################################################
+# PROTV - Protocol Stack Version
+#
+record(stringin,"$(P)PROTV") 
+{
+    field(DESC, "Protocol Stack Version")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto prot_v($(P)) $(PORT)")
+    field(SCAN, "10 second")
+}
+################################################################################
+#
+# CP2800 commands
+#
+################################################################################
+# CHECKSUM - Firmware Checksum
+#
+record(longin,"$(P)CHECKSUM") 
+{
+    field(DESC, "Firmware Checksum")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto code_sum($(P)) $(PORT)")
+    field(SCAN, "10 second")
+}
+################################################################################
+# MEMLOSS - Nonvolatile Memory Loss
+#
+record(bi, "$(P)MEMLOSS")
+{
+    field(DESC, "Nonvolatile Memory Loss")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto mem_loss($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(ZNAM, "OK")
+    field(ONAM, "Lost")
+    field(OSV,  "MAJOR")
+}
+################################################################################
+# TCPU - CPU Temperature
+#
+record(longin, "$(P)TCPURAW") 
+{
+    field(DESC, "CPU Temperature (0.1C)")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto cpu_temp($(P)) $(PORT)")
+    field(SCAN, "1 second")
+    field(FLNK, "$(P)TCPU")
+}
+record(ai, "$(P)TCPU") 
+{
+    field(DESC, "CPU Temperature")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)TCPURAW MS")
+    field(ASLO, "0.1")
+    field(HOPR, "100")
+    field(LOPR, "0")
+    field(PREC, "1")
+    field(EGU,  "C")
+    field(HIHI, "100")
+    field(LOLO, "-100")
+    field(HIGH, "50")
+    field(LOW,  "-50")
+    field(HHSV, "MAJOR")
+    field(LLSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(LSV,  "MINOR")
+    field(ADEL, "0.5")
+}
+################################################################################
+# CLOCK - Clock OK
+#
+record(bi, "$(P)CLOCK")
+{
+    field(DESC, "Clock OK")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto batt_ok($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(ZNAM, "Fault")
+    field(ONAM, "OK")
+    field(ZSV,  "MINOR")
+}
+################################################################################
+# BATTERY - Clock Battery Low
+#
+record(bi, "$(P)BATTERY")
+{
+    field(DESC, "Clock Battery Low")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto batt_low($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(ZNAM, "OK")
+    field(ONAM, "Low")
+    field(OSV,  "MINOR")
+}
+################################################################################
+# ELAPSED - Elapsed Compressor
+#
+record(longin, "$(P)ELAPSED") 
+{
+    field(DESC, "Elapsed Time Compressor")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto comp_min($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(EGU,  "min")
+    field(HIHI, "1000000")
+    field(LOLO, "-1")
+    field(HIGH, "500000")
+    field(LOW,  "-1")
+    field(HHSV, "MAJOR")
+    field(LLSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(LSV,  "MINOR")
+    field(ADEL, "5")
+    field(SIML, "$(P)SIM")
+    field(SIOL, "$(P)SIM:ELAPSED")
+    field(SDIS, "$(P)DISABLE")
+}
+################################################################################
+# IMOT - Compressor Motor Current Draw
+#
+record(longin, "$(P)IMOT") 
+{
+    field(DESC, "Compressor Motor Current")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto mot_cur($(P)) $(PORT)")
+    field(SCAN, "1 second")
+    field(EGU,  "A")
+    field(HIHI, "100")
+    field(LOLO, "-100")
+    field(HIGH, "50")
+    field(LOW,  "-50")
+    field(HHSV, "MAJOR")
+    field(LLSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(LSV,  "MINOR")
+    field(ADEL, "5")
+}
+################################################################################
+#
+# State of Remote Inputs
+#
+################################################################################
+# RI:START - Remote Input: Start
+#
+record(bi, "$(P)RI:START")
+{
+    field(DESC, "Remote Input: Start")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto ri_start($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(ZNAM, "No")
+    field(ONAM, "Yes")
+}
+################################################################################
+# RI:STOP - Remote Input: Stop
+#
+record(bi, "$(P)RI:STOP")
+{
+    field(DESC, "Remote Input: Stop")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto ri_stop($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(ZNAM, "No")
+    field(ONAM, "Yes")
+}
+################################################################################
+# RI:ILOK - Remote Input: ILOK
+#
+record(bi, "$(P)RI:ILOK")
+{
+    field(DESC, "Remote Input: ILOK")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto ri_ilok($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(ZNAM, "No")
+    field(ONAM, "Yes")
+}
+################################################################################
+# RI:SLVL - Remote Input: SLVL
+#
+record(bi, "$(P)RI:SLVL")
+{
+    field(DESC, "Remote Input: SLVL")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto ri_slvl($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(ZNAM, "No")
+    field(ONAM, "Yes")
+}
+################################################################################
+#
+# Temperatures
+#
+################################################################################
+# IN:T - Input Water Temperature
+#
+record(longin, "$(P)IN:TRAW") 
+{
+    field(DESC, "Inp Water Temperature (0.1C)")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto temp_0($(P)) $(PORT)")
+    field(SCAN, "1 second")
+    field(FLNK, "$(P)IN:T")
+}
+record(ai, "$(P)IN:T") 
+{
+    field(DESC, "Input Water Temperature")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)IN:TRAW MS")
+    field(ASLO, "0.1")
+    field(HOPR, "100")
+    field(LOPR, "0")
+    field(PREC, "1")
+    field(EGU,  "C")
+    field(HIHI, "52")
+    field(LOLO, "-300")
+    field(HIGH, "29")
+    field(LOW,  "-290")
+    field(HHSV, "MAJOR")
+    field(LLSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(LSV,  "MINOR")
+    field(ADEL, "0.5")
+}
+################################################################################
+# OUT:T - Output Water Temperature
+#
+record(longin, "$(P)OUT:TRAW") 
+{
+    field(DESC, "Out Water Temperature (0.1C)")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto temp_1($(P)) $(PORT)")
+    field(SCAN, "1 second")
+    field(FLNK, "$(P)OUT:T")
+}
+record(ai, "$(P)OUT:T") 
+{
+    field(DESC, "Output Water Temperature")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)OUT:TRAW MS")
+    field(ASLO, "0.1")
+    field(HOPR, "100")
+    field(LOPR, "0")
+    field(PREC, "1")
+    field(EGU,  "C")
+    field(HIHI, "55")
+    field(LOLO, "-300")
+    field(HIGH, "50")
+    field(LOW,  "-290")
+    field(HHSV, "MAJOR")
+    field(LLSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(LSV,  "MINOR")
+    field(ADEL, "0.5")
+}
+################################################################################
+# HE:T - Helium Temperature
+#
+record(longin, "$(P)HE:TRAW") 
+{
+    field(DESC, "He Temperature (0.1C)")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto temp_2($(P)) $(PORT)")
+    field(SCAN, "1 second")
+    field(FLNK, "$(P)HE:T")
+}
+record(ai, "$(P)HE:T") 
+{
+    field(DESC, "Helium Temperature")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)HE:TRAW MS")
+    field(ASLO, "0.1")
+    field(HOPR, "100")
+    field(LOPR, "-300")
+    field(PREC, "1")
+    field(EGU,  "C")
+    field(HIHI, "88")
+    field(LOLO, "-300")
+    field(HIGH, "80")
+    field(LOW,  "-290")
+    field(HHSV, "MAJOR")
+    field(LLSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(LSV,  "MINOR")
+    field(ADEL, "0.5")
+}
+################################################################################
+# OIL:T - Oil Temperature
+#
+record(longin, "$(P)OIL:TRAW") 
+{
+    field(DESC, "Oil Temperature (0.1C)")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto temp_3($(P)) $(PORT)")
+    field(SCAN, "1 second")
+    field(FLNK, "$(P)OIL:T")
+}
+record(ai, "$(P)OIL:T") 
+{
+    field(DESC, "Oil Temperature")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)OIL:TRAW MS")
+    field(ASLO, "0.1")
+    field(HOPR, "100")
+    field(LOPR, "0")
+    field(PREC, "1")
+    field(EGU,  "C")
+    field(HIHI, "49")
+    field(LOLO, "7")
+    field(HIGH, "45")
+    field(LOW,  "9")
+    field(HHSV, "MAJOR")
+    field(LLSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(LSV,  "MINOR")
+    field(ADEL, "0.5")
+}
+################################################################################
+# IN:TMIN - Minimum Input Water Temperature
+#
+record(longin, "$(P)IN:TMINRAW") 
+{
+    field(DESC, "Min Inp Water Temp (0.1C)")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto tmin_0($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(FLNK, "$(P)IN:TMIN")
+}
+record(ai, "$(P)IN:TMIN") 
+{
+    field(DESC, "Minimum Input Water Temp")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)IN:TMINRAW MS")
+    field(ASLO, "0.1")
+    field(HOPR, "100")
+    field(LOPR, "0")
+    field(PREC, "1")
+    field(EGU,  "C")
+    field(HIHI, "52")
+    field(LOLO, "-300")
+    field(HIGH, "29")
+    field(LOW,  "-290")
+    field(HHSV, "MAJOR")
+    field(LLSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(LSV,  "MINOR")
+    field(ADEL, "0.5")
+}
+################################################################################
+# OUT:TMIN - Minimum Output Water Temperature
+#
+record(longin, "$(P)OUT:TMINRAW") 
+{
+    field(DESC, "Min Out Water Temp (0.1C)")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto tmin_1($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(FLNK, "$(P)OUT:TMIN")
+}
+record(ai, "$(P)OUT:TMIN") 
+{
+    field(DESC, "Minimum Output Water Temp")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)OUT:TMINRAW MS")
+    field(ASLO, "0.1")
+    field(HOPR, "100")
+    field(LOPR, "0")
+    field(PREC, "1")
+    field(EGU,  "C")
+    field(HIHI, "55")
+    field(LOLO, "-300")
+    field(HIGH, "50")
+    field(LOW,  "-290")
+    field(HHSV, "MAJOR")
+    field(LLSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(LSV,  "MINOR")
+    field(ADEL, "0.5")
+}
+################################################################################
+# HE:TMIN - Minimum Helium Temperature
+#
+record(longin, "$(P)HE:TMINRAW") 
+{
+    field(DESC, "Min He Temperature (0.1C)")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto tmin_2($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(FLNK, "$(P)HE:TMIN")
+}
+record(ai, "$(P)HE:TMIN") 
+{
+    field(DESC, "Minimum Helium Temperature")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)HE:TMINRAW MS")
+    field(ASLO, "0.1")
+    field(HOPR, "100")
+    field(LOPR, "-300")
+    field(PREC, "1")
+    field(EGU,  "C")
+    field(HIHI, "88")
+    field(LOLO, "-300")
+    field(HIGH, "80")
+    field(LOW,  "-290")
+    field(HHSV, "MAJOR")
+    field(LLSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(LSV,  "MINOR")
+    field(ADEL, "0.5")
+}
+################################################################################
+# OIL:TMIN - Minimum Oil Temperature
+#
+record(longin, "$(P)OIL:TMINRAW") 
+{
+    field(DESC, "Min Oil Temperature (0.1C)")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto tmin_3($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(FLNK, "$(P)OIL:TMIN")
+}
+record(ai, "$(P)OIL:TMIN") 
+{
+    field(DESC, "Minimum Oil Temperature")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)OIL:TMINRAW MS")
+    field(ASLO, "0.1")
+    field(HOPR, "100")
+    field(LOPR, "0")
+    field(PREC, "1")
+    field(EGU,  "C")
+    field(HIHI, "49")
+    field(LOLO, "7")
+    field(HIGH, "45")
+    field(LOW,  "9")
+    field(HHSV, "MAJOR")
+    field(LLSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(LSV,  "MINOR")
+    field(ADEL, "0.5")
+}
+################################################################################
+# IN:TMAX - Maximum Input Water Temperature
+#
+record(longin, "$(P)IN:TMAXRAW") 
+{
+    field(DESC, "Max In Water Temp (0.1C)")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto tmax_0($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(FLNK, "$(P)IN:TMAX")
+}
+record(ai, "$(P)IN:TMAX") 
+{
+    field(DESC, "Maximum Input Water Temp")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)IN:TMAXRAW MS")
+    field(ASLO, "0.1")
+    field(HOPR, "100")
+    field(LOPR, "0")
+    field(PREC, "1")
+    field(EGU,  "C")
+    field(HIHI, "52")
+    field(LOLO, "-300")
+    field(HIGH, "29")
+    field(LOW,  "-290")
+    field(HHSV, "MAJOR")
+    field(LLSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(LSV,  "MINOR")
+    field(ADEL, "0.5")
+}
+################################################################################
+# OUT:TMAX - Maximum Output Water Temperature
+#
+record(longin, "$(P)OUT:TMAXRAW") 
+{
+    field(DESC, "Max Out Water Temp (0.1C)")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto tmax_1($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(FLNK, "$(P)OUT:TMAX")
+}
+record(ai, "$(P)OUT:TMAX") 
+{
+    field(DESC, "Maximum Output Water Temp")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)OUT:TMAXRAW MS")
+    field(ASLO, "0.1")
+    field(HOPR, "100")
+    field(LOPR, "0")
+    field(PREC, "1")
+    field(EGU,  "C")
+    field(HIHI, "55")
+    field(LOLO, "-300")
+    field(HIGH, "50")
+    field(LOW,  "-290")
+    field(HHSV, "MAJOR")
+    field(LLSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(LSV,  "MINOR")
+    field(ADEL, "0.5")
+}
+################################################################################
+# HE:TMAX - Maximum Helium Temperature
+#
+record(longin, "$(P)HE:TMAXRAW") 
+{
+    field(DESC, "Max He Temperature (0.1C)")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto tmax_2($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(FLNK, "$(P)HE:TMAX")
+}
+record(ai, "$(P)HE:TMAX") 
+{
+    field(DESC, "Maximum Helium Temp")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)HE:TMAXRAW MS")
+    field(ASLO, "0.1")
+    field(HOPR, "100")
+    field(LOPR, "-300")
+    field(PREC, "1")
+    field(EGU,  "C")
+    field(HIHI, "88")
+    field(LOLO, "-300")
+    field(HIGH, "80")
+    field(LOW,  "-290")
+    field(HHSV, "MAJOR")
+    field(LLSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(LSV,  "MINOR")
+    field(ADEL, "0.5")
+}
+################################################################################
+# OIL:TMAX - Maximum Oil Temperature
+#
+record(longin, "$(P)OIL:TMAXRAW") 
+{
+    field(DESC, "Max Oil Temperature (0.1C)")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto tmax_3($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(FLNK, "$(P)OIL:TMAX")
+}
+record(ai, "$(P)OIL:TMAX") 
+{
+    field(DESC, "Maximum Oil Temperature")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)OIL:TMAXRAW MS")
+    field(ASLO, "0.1")
+    field(HOPR, "100")
+    field(LOPR, "0")
+    field(PREC, "1")
+    field(EGU,  "C")
+    field(HIHI, "49")
+    field(LOLO, "7")
+    field(HIGH, "45")
+    field(LOW,  "9")
+    field(HHSV, "MAJOR")
+    field(LLSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(LSV,  "MINOR")
+    field(ADEL, "0.5")
+}
+################################################################################
+# TPCLR - Clear Temperature and Pressure Markers
+#
+record(bo, "$(P)TPCLR")
+{
+    field(DESC, "Clear TP markers")
+    field(DTYP, "stream")
+    field(OUT,  "@cp2800.proto tp_clear($(P)) $(PORT)")
+    field(ONAM, "Clear")
+    field(SDIS, "$(P)DISABLE")
+}
+################################################################################
+# ERRT - Temperature sensor failed
+#
+record(bi, "$(P)ERRT")
+{
+    field(DESC, "Temperature sensor failed")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto temp_err($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(ZNAM, "OK")
+    field(ONAM, "Fault")
+    field(OSV,  "MAJOR")
+}
+################################################################################
+#
+# Pressures
+#
+################################################################################
+# HS:P - High Side Pressure
+#
+record(longin, "$(P)HS:PRAW") 
+{
+    field(DESC, "HS Pressure (0.1psi)")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto pres_0($(P)) $(PORT)")
+    field(SCAN, "1 second")
+    field(FLNK, "$(P)HS:P")
+}
+record(ai, "$(P)HS:P") 
+{
+    field(DESC, "High Side Pressure")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)HS:PRAW MS")
+    field(ASLO, "0.1")
+    field(HOPR, "100")
+    field(LOPR, "0")
+    field(PREC, "1")
+    field(EGU,  "psi")
+    field(HIHI, "410")
+    field(LOLO, "300")
+    field(HIGH, "399")
+    field(LOW,  "320")
+    field(HHSV, "MAJOR")
+    field(LLSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(LSV,  "MINOR")
+    field(ADEL, "0.5")
+}
+################################################################################
+# LS:P - Low Side Pressure
+#
+record(longin, "$(P)LS:PRAW") 
+{
+    field(DESC, "LS Pressure (0.1psi)")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto pres_1($(P)) $(PORT)")
+    field(SCAN, "1 second")
+    field(FLNK, "$(P)LS:P")
+}
+record(ai, "$(P)LS:P") 
+{
+    field(DESC, "Low Side Pressure")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)LS:PRAW MS")
+    field(ASLO, "0.1")
+    field(HOPR, "100")
+    field(LOPR, "0")
+    field(PREC, "1")
+    field(EGU,  "psi")
+    field(HIHI, "410")
+    field(LOLO, "80")
+    field(HIGH, "399")
+    field(LOW,  "90")
+    field(HHSV, "MAJOR")
+    field(LLSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(LSV,  "MINOR")
+    field(ADEL, "0.5")
+}
+################################################################################
+# HS:PMIN - Minimum High Side Pressure
+#
+record(longin, "$(P)HS:PMINRAW") 
+{
+    field(DESC, "Min HS Pressure (0.1psi)")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto pmin_0($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(FLNK, "$(P)HS:PMIN")
+}
+record(ai, "$(P)HS:PMIN") 
+{
+    field(DESC, "Minimum High Side Pressure")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)HS:PMINRAW MS")
+    field(ASLO, "0.1")
+    field(HOPR, "100")
+    field(LOPR, "0")
+    field(PREC, "1")
+    field(EGU,  "psi")
+    field(HIHI, "410")
+    field(LOLO, "300")
+    field(HIGH, "399")
+    field(LOW,  "320")
+#    field(HHSV, "MAJOR")
+#    field(LLSV, "MAJOR")
+#    field(HSV,  "MINOR")
+#    field(LSV,  "MINOR")
+    field(ADEL, "0.5")
+}
+################################################################################
+# LS:PMIN - Minimum Low Side Pressure
+#
+record(longin, "$(P)LS:PMINRAW") 
+{
+    field(DESC, "Min LS Pressure (0.1psi)")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto pmin_1($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(FLNK, "$(P)LS:PMIN")
+}
+record(ai, "$(P)LS:PMIN") 
+{
+    field(DESC, "Minimum Low Side Pressure")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)LS:PMINRAW MS")
+    field(ASLO, "0.1")
+    field(HOPR, "100")
+    field(LOPR, "0")
+    field(PREC, "1")
+    field(EGU,  "psi")
+    field(HIHI, "410")
+    field(LOLO, "80")
+    field(HIGH, "399")
+    field(LOW,  "90")
+#    field(HHSV, "MAJOR")
+#    field(LLSV, "MAJOR")
+#    field(HSV,  "MINOR")
+#    field(LSV,  "MINOR")
+    field(ADEL, "0.5")
+}
+################################################################################
+# HS:PMAX - Maximum High Side Pressure
+#
+record(longin, "$(P)HS:PMAXRAW") 
+{
+    field(DESC, "Max HS Pressure (0.1psi)")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto pmax_0($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(FLNK, "$(P)HS:PMAX")
+}
+record(ai, "$(P)HS:PMAX") 
+{
+    field(DESC, "Maximum High Side Pressure")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)HS:PMAXRAW MS")
+    field(ASLO, "0.1")
+    field(HOPR, "100")
+    field(LOPR, "0")
+    field(PREC, "1")
+    field(EGU,  "psi")
+    field(HIHI, "410")
+    field(LOLO, "300")
+    field(HIGH, "399")
+    field(LOW,  "320")
+#    field(HHSV, "MAJOR")
+#    field(LLSV, "MAJOR")
+#    field(HSV,  "MINOR")
+#    field(LSV,  "MINOR")
+    field(ADEL, "0.5")
+}
+################################################################################
+# LS:PMAX - Maximum Low Side Pressure
+#
+record(longin, "$(P)LS:PMAXRAW") 
+{
+    field(DESC, "Max LS Pressure (0.1psi)")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto pmax_1($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(FLNK, "$(P)LS:PMAX")
+}
+record(ai, "$(P)LS:PMAX") 
+{
+    field(DESC, "Maximum Low Side Pressure")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)LS:PMAXRAW MS")
+    field(ASLO, "0.1")
+    field(HOPR, "100")
+    field(LOPR, "0")
+    field(PREC, "1")
+    field(EGU,  "psi")
+    field(HIHI, "410")
+    field(LOLO, "80")
+    field(HIGH, "399")
+    field(LOW,  "90")
+#    field(HHSV, "MAJOR")
+#    field(LLSV, "MAJOR")
+#    field(HSV,  "MINOR")
+#    field(LSV,  "MINOR")
+    field(ADEL, "0.5")
+}
+################################################################################
+# ERRP - Pressure sensor failed
+#
+record(bi, "$(P)ERRP")
+{
+    field(DESC, "Pressure sensor failed")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto pres_err($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(ZNAM, "OK")
+    field(ONAM, "Fault")
+    field(OSV,  "MAJOR")
+}
+################################################################################
+# LS:PAV - Average Low Side Pressure
+#
+record(longin, "$(P)LS:PAVRAW") 
+{
+    field(DESC, "Av LS Pressure (0.1psi)")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto h_alp($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(FLNK, "$(P)LS:PAV")
+}
+record(ai, "$(P)LS:PAV") 
+{
+    field(DESC, "Average Low Side Pressure")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)LS:PAVRAW MS")
+    field(ASLO, "0.1")
+    field(HOPR, "100")
+    field(LOPR, "0")
+    field(PREC, "1")
+    field(EGU,  "psi")
+    field(HIHI, "410")
+    field(LOLO, "80")
+    field(HIGH, "399")
+    field(LOW,  "90")
+    field(HHSV, "MAJOR")
+    field(LLSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(LSV,  "MINOR")
+    field(ADEL, "0.5")
+}
+################################################################################
+# HS:PAV - Average High Side Pressure
+#
+record(longin, "$(P)HS:PAVRAW") 
+{
+    field(DESC, "Av HS Pressure (0.1psi)")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto h_ahp($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(FLNK, "$(P)HS:PAV")
+}
+record(ai, "$(P)HS:PAV") 
+{
+    field(DESC, "Average High Side Pressure")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)HS:PAVRAW MS")
+    field(ASLO, "0.1")
+    field(HOPR, "100")
+    field(LOPR, "0")
+    field(PREC, "1")
+    field(EGU,  "psi")
+    field(HIHI, "410")
+    field(LOLO, "300")
+    field(HIGH, "399")
+    field(LOW,  "320")
+    field(HHSV, "MAJOR")
+    field(LLSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(LSV,  "MINOR")
+    field(ADEL, "0.5")
+}
+################################################################################
+# PDAV - Average Delta Pressure
+#
+record(longin, "$(P)PDAVRAW") 
+{
+    field(DESC, "Av Delta Pressure (0.1psi)")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto h_adp($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(FLNK, "$(P)PDAV")
+}
+record(ai, "$(P)PDAV") 
+{
+    field(DESC, "Average Delta Pressure")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)PDAVRAW MS")
+    field(ASLO, "0.1")
+    field(HOPR, "100")
+    field(LOPR, "0")
+    field(PREC, "1")
+    field(EGU,  "psi")
+    field(HIHI, "330")
+    field(LOLO, "-99")
+    field(HIGH, "300")
+    field(LOW,  "0")
+    field(HHSV, "MAJOR")
+    field(LLSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(LSV,  "MINOR")
+    field(ADEL, "0.5")
+}
+################################################################################
+# HS:DP - 1st Derivative of High Side Pressure "Bounce"
+#
+record(longin, "$(P)HS:DPRAW") 
+{
+    field(DESC, "Bounce (0.1psi)")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto h_dpac($(P)) $(PORT)")
+    field(SCAN, "1 second")
+    field(FLNK, "$(P)HS:DP")
+}
+record(ai, "$(P)HS:DP") 
+{
+    field(DESC, "Bounce")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)HS:DPRAW MS")
+    field(ASLO, "0.1")
+    field(HOPR, "100")
+    field(LOPR, "0")
+    field(PREC, "1")
+    field(EGU,  "psi")
+    field(HIHI, "200")
+    field(LOLO, "-1")
+    field(HIGH, "100")
+    field(LOW,  "-1")
+    field(HHSV, "MAJOR")
+    field(LLSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(LSV,  "MINOR")
+    field(ADEL, "0.5")
+}
+################################################################################
+#
+# Cryo Diode Temperatures
+#
+################################################################################
+# D:V - Diode Voltage Reading (uV, 0.000001V)
+#
+record(longin, "$(P)D:V") 
+{
+    field(DESC, "Diode Voltage")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto diode_v($(P)) $(PORT)")
+    field(SCAN, "1 second")
+    field(HOPR, "1000")
+    field(LOPR, "0")
+    field(EGU,  "uV")
+    field(HIHI, "1000000")
+    field(LOLO, "-1000000")
+    field(HIGH, "500000")
+    field(LOW,  "-500000")
+    field(HHSV, "MAJOR")
+    field(LLSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(LSV,  "MINOR")
+    field(ADEL, "5")
+}
+################################################################################
+# D0:T - Diode Temperature Reading (0.01K)
+#
+record(longin, "$(P)D0:TRAW") 
+{
+    field(DESC, "Diode Temperature (0.01K)")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto diode_t0($(P)) $(PORT)")
+    field(SCAN, "1 second")
+    field(FLNK, "$(P)D0:T")
+}
+record(ai, "$(P)D0:T") 
+{
+    field(DESC, "Diode Temperature")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)D0:TRAW MS")
+    field(ASLO, "0.01")
+    field(HOPR, "10")
+    field(LOPR, "0")
+    field(PREC, "2")
+    field(EGU,  "K")
+    field(HIHI, "300")
+    field(LOLO, "-1")
+    field(HIGH, "50")
+    field(LOW,  "-1")
+    field(HHSV, "MAJOR")
+    field(LLSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(LSV,  "MINOR")
+    field(ADEL, "0.05")
+}
+################################################################################
+# D1:T - Diode Temperature Reading (0.01K)
+#
+record(longin, "$(P)D1:TRAW") 
+{
+    field(DESC, "Diode Temperature (0.01K)")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto diode_t1($(P)) $(PORT)")
+    field(SCAN, "1 second")
+    field(FLNK, "$(P)D1:T")
+}
+record(ai, "$(P)D1:T") 
+{
+    field(DESC, "Diode Temperature")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)D1:TRAW MS")
+    field(ASLO, "0.01")
+    field(HOPR, "10")
+    field(LOPR, "0")
+    field(PREC, "2")
+    field(EGU,  "K")
+    field(HIHI, "300")
+    field(LOLO, "-1")
+    field(HIGH, "50")
+    field(LOW,  "-1")
+    field(HHSV, "MAJOR")
+    field(LLSV, "MAJOR")
+    field(HSV,  "MINOR")
+    field(LSV,  "MINOR")
+    field(ADEL, "0.05")
+}
+################################################################################
+# D0:ERR - Diode failed
+#
+record(bi, "$(P)D0:ERR")
+{
+    field(DESC, "Diode failed")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto diode_e0($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(ZNAM, "OK")
+    field(ONAM, "Fault")
+#    field(OSV,  "MAJOR")
+}
+################################################################################
+# D1:ERR - Diode failed
+#
+record(bi, "$(P)D1:ERR")
+{
+    field(DESC, "Diode failed")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto diode_e1($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(ZNAM, "OK")
+    field(ONAM, "Fault")
+#    field(OSV,  "MAJOR")
+}
+################################################################################
+# D:CAL - Custom Calibration Curve
+#
+record(bi, "$(P)D:CAL")
+{
+    field(DESC, "Calibration")
+    field(DTYP, "stream")
+    field(INP,  "@cp2800.proto dcal_sel($(P)) $(PORT)")
+    field(SCAN, "10 second")
+    field(ZNAM, "Normal")
+    field(ONAM, "Custom")
+}
+################################################################################
+#
+# Compressor Control and Status
+#
+################################################################################
+# START - Start Compressor
+#
+record(bo, "$(P)START")
+{
+    field(DESC, "Start Compressor")
+    field(DTYP, "stream")
+    field(OUT,  "@cp2800.proto ev_start($(P)) $(PORT)")
+    field(ONAM, "Start")
+    field(SDIS, "$(P)DISABLE")
+}
+################################################################################
+# STOP - Stop Compressor
+#
+record(bo, "$(P)STOP")
+{
+    field(DESC, "Stop Compressor")
+    field(DTYP, "stream")
+    field(OUT,  "@cp2800.proto ev_stop($(P)) $(PORT)")
+    field(ZNAM, "Stop")
+    field(SDIS, "$(P)DISABLE")
+}
+################################################################################
+# STA - Compressor Power Status
+#
+record(bi, "$(P)STA")
 {
     field(DESC, "Compressor Power Status")
     field(DTYP, "stream")
@@ -107,8 +1250,11 @@ record(bi, "$(P)POWER")
     field(SIML, "$(P)SIM")
     field(SIOL, "$(P)SIM:POWER")
     field(SDIS, "$(P)DISABLE")
+	alias("$(P)POWER")
 }
-
+################################################################################
+# ERR - Error Code - Zero = OK otherwise Error or Warning
+#
 record(longin, "$(P)ERR") 
 {
     field(DESC, "Error")
@@ -123,26 +1269,153 @@ record(longin, "$(P)ERR")
     field(SIOL, "$(P)SIM:ERR")
     field(SDIS, "$(P)DISABLE")
 }
-
-record(longin, "$(P)ELAPSED") 
+record(calc, "$(P)CALWARN") 
 {
-    field(DESC, "Elapsed Time Compressor")
-    field(DTYP, "stream")
-    field(INP,  "@cp2800.proto comp_min($(P)) $(PORT)")
-    field(SCAN, "10 second")
-    field(EGU,  "min")
-    field(HIHI, "1000000")
+    field(DESC, "Error")
+    field(CALC, "(A<14||A>23)?0:A")
+    field(INPA, "$(P)ERR MS")
+    field(HIGH, "1")
     field(LOLO, "-1")
-    field(HIGH, "500000")
+    field(HSV,  "MINOR")
+    field(LLSV, "MAJOR")
+}
+record(calc, "$(P)CALERR") 
+{
+    field(DESC, "Error")
+    field(CALC, "(B>0)?0:(A=24)?7:A")
+    field(INPA, "$(P)ERR MS")
+    field(INPB, "$(P)CALWARN PP")
+    field(HIHI, "1")
+    field(LOLO, "-1")
     field(HHSV, "MAJOR")
     field(LLSV, "MAJOR")
-    field(HSV,  "MINOR")
-    field(ADEL, "5")
-    field(SIML, "$(P)SIM")
-    field(SIOL, "$(P)SIM:ELAPSED")
-    field(SDIS, "$(P)DISABLE")
 }
-
+record(mbbi, "$(P)WARN") 
+{
+    field(DESC, "Warning")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)CALWARN PP MS")
+    field(SCAN, "1 second")
+    field(ZRVL, "0")  field(ZRST, "")
+    field(ONVL, "14") field(ONST, "Low Mains V")
+    field(TWVL, "18") field(TWST, "Stall Detected")
+    field(THVL, "15") field(THST, "No High PSI Sns")
+    field(FRVL, "16") field(FRST, "NO Low PSI Sns")
+    field(FVVL, "17") field(FVST, "High Delta P")
+    field(SXVL, "19") field(SXST, "No IP Water Sns")
+    field(SVVL, "20") field(SVST, "High Water Temp")
+    field(EIVL, "21") field(EIST, "No OP Water Sns")
+    field(NIVL, "22") field(NIST, "No He Temp Sns")
+    field(TEVL, "23") field(TEST, "No Oil Temp Sns")
+}
+record(mbbi, "$(P)ERROR") 
+{
+    field(DESC, "Error")
+    field(DTYP, "Raw Soft Channel")
+    field(INP,  "$(P)CALERR PP MS")
+    field(SCAN, "1 second")
+    field(ZRVL, "0")  field(ZRST, "")
+    field(ONVL, "1")  field(ONST, "I2C Bus")
+    field(TWVL, "2")  field(TWST, "5V High")
+    field(THVL, "3")  field(THST, "5V Low")
+    field(FRVL, "4")  field(FRST, "Sys Lockout")
+    field(FVVL, "5")  field(FVST, "Pwr Phase Order")
+    field(SXVL, "6")  field(SXST, "Remote Ilk 1")
+    field(SVVL, "7")  field(SVST, "RMT Ilk")
+    field(EIVL, "8")  field(EIST, "High He Pres")
+    field(NIVL, "9")  field(NIST, "Low Water Flow")
+    field(TEVL, "10") field(TEST, "High He Gas Tmp")
+    field(ELVL, "11") field(ELST, "Low He Pressure")
+    field(TVVL, "12") field(TVST, "Low Motor Curr")
+    field(TTVL, "13") field(TTST, "High Oil Temp")
+    field(FTVL, "26") field(FTST, "Low Oil Temp")
+    field(FFVL, "25") field(FFST, "Dewar Vacuum")
+}
+################################################################################
+#
+# Alarm Summary
+#
+################################################################################
+# ALM - Maximum Alarm Severity
+#
+record(calc, "$(P)ALM")
+{
+    field(DESC, "Max Severity")
+    field(SCAN, "1 second")
+    field(CALC, "A+B+C+D+E+F")
+    field(INPA, "$(P)STA MS")
+    field(INPB, "$(P)ERR MS")
+    field(INPC, "$(P)ALMS PP MS")
+    field(INPD, "$(P)ALMT PP MS")
+    field(INPE, "$(P)ALMP PP MS")
+    field(INPF, "$(P)ALMD PP MS")
+}
+################################################################################
+# ALMS - System Alarm Severity
+#
+record(calc, "$(P)ALMS")
+{
+    field(DESC, "Max Severity")
+    field(CALC, "A+B+C+D+E+F+G+H+I")
+    field(INPA, "$(P)MEMLOSS MS")
+    field(INPB, "$(P)TCPU MS")
+    field(INPC, "$(P)CLOCK MS")
+    field(INPD, "$(P)BATTERY MS")
+    field(INPE, "$(P)ELAPSED MS")
+    field(INPF, "$(P)IMOT MS")
+    field(INPG, "$(P)CMD MS")
+    field(INPH, "$(P)RSP MS")
+    field(INPI, "$(P)RSPF MS")
+}
+################################################################################
+# ALMT - Temperature Alarm Severity
+#
+record(calc, "$(P)ALMT")
+{
+    field(DESC, "Max Severity")
+    field(CALC, "A+B+C+D+E+F+G+H+I")
+    field(INPA, "$(P)IN:TMIN MS")
+    field(INPB, "$(P)IN:TMAX MS")
+    field(INPC, "$(P)OUT:TMIN MS")
+    field(INPD, "$(P)OUT:TMAX MS")
+    field(INPE, "$(P)HE:TMIN MS")
+    field(INPF, "$(P)HE:TMAX MS")
+    field(INPG, "$(P)OIL:TMIN MS")
+    field(INPH, "$(P)OIL:TMAX MS")
+    field(INPI, "$(P)ERRT MS")
+}
+################################################################################
+# ALMP - Pressure Alarm Severity
+#
+record(calc, "$(P)ALMP")
+{
+    field(DESC, "Max Severity")
+    field(CALC, "A+B+C+D+E+F+G+H+I")
+    field(INPA, "$(P)HS:PMIN MS")
+    field(INPB, "$(P)LS:PMIN MS")
+    field(INPC, "$(P)HS:PMAX MS")
+    field(INPD, "$(P)LS:PMAX MS")
+    field(INPE, "$(P)HS:PAV MS")
+    field(INPF, "$(P)LS:PAV MS")
+    field(INPG, "$(P)HS:DP MS")
+    field(INPH, "$(P)PDAV MS")
+    field(INPI, "$(P)ERRP MS")
+}
+################################################################################
+# ALMD - Diode Alarm Severity
+#
+record(calc, "$(P)ALMD")
+{
+    field(DESC, "Max Severity")
+    field(CALC, "A+B+C+D+E+F")
+    field(INPA, "$(P)D0:T MS")
+    field(INPB, "$(P)D0:ERR MS")
+    field(INPC, "$(P)D1:T MS")
+    field(INPD, "$(P)D1:ERR MS")
+    field(INPE, "$(P)D:V MS")
+    field(INPF, "$(P)D:CAL MS")
+}
+################################################################################
 
 ### SIMULATION RECORDS ###
 
@@ -176,3 +1449,14 @@ record(longin,"$(P)SIM:ERR")
     field(DTYP, "Soft Channel")
 }
 
+record(stringin,"$(P)SIM:VERSION")
+{
+    field(SCAN, "Passive")
+    field(DTYP, "Soft Channel")
+}
+
+record(bo,"$(P)SIM:RESET")
+{
+    field(SCAN, "Passive")
+    field(DTYP, "Soft Channel")
+}
