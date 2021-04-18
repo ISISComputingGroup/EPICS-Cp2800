@@ -14,7 +14,7 @@ DLY = 20; # delay between commands - may make comms more reliable
 
 ADR = 0x10; # address of device, just set to 0x10 here, but valid range is 0x10 to 0xFE, 0xFF indicates extending the ADR field by 1 byte
 CMD = 0x80; # CMD byte, indicates that a command is being sent
-RSP = 0x89; # RSP byte, indicates that a response is being sent
+RSP = 0x89; # RSP byte, indicates that a response is being sent - was 0x81 in orig?
 #
 CP_CMD = STX $ADR $CMD; # start of string to send when issuing a command
 CP_RSP = STX $ADR $RSP; # start of string recieved when getting response
@@ -26,54 +26,132 @@ CP_RSP = STX $ADR $RSP; # start of string recieved when getting response
 # Byte 4:    index (for arrays)
 # Bites 5-8: output value (for write commands only)
 #
+CODE_SUM  = 'c' 0x2B 0x0D 0;         # Firmware Checksum
+MEM_LOSS  = 'c' 0x80 0x1A 0;         # TRUE if nonvolatile memory was lost
+CPU_TEMP  = 'c' 0x35 0x74 0;         # CPU temperature (0.1 degC)
+BATT_OK   = 'c' 0xA3 0x7A 0;         # TRUE if clock OK
+BATT_LOW  = 'c' 0x0B 0x8B 0;         # TRUE if clock battery low
+COMP_MIN  = 'c' 0x45 0x4C 0;         # Elapsed compressor minutes
+MOT_CUR   = 'c' 0x63 0x8B 0;         # Compressor motor current draw (Amps)
 
+RI_START  = 'c' 0xBA 0xF7 0;         # Remote Input RI_RMP_COMP_START
+RI_STOP   = 'c' 0x3D 0x85 0;         # Remote Input RI_RMP_COMP_STOP
+RI_ILOK   = 'c' 0xB1 0x5A 0;         # Remote Input RI_RMP_COMP_ILOK
+RI_SLVL   = 'c' 0x95 0xE3 0;         # Remote Input RI_SLVL
+
+TEMP_0    = 'c' 0x0D 0x8F 0;         # Input water temperature (0.1 degC)
+TEMP_1    = 'c' 0x0D 0x8F 1;         # Output water temperature (0.1 degC)
+TEMP_2    = 'c' 0x0D 0x8F 2;         # Helium temperature (0.1 degC)
+TEMP_3    = 'c' 0x0D 0x8F 3;         # Oil temperature (0.1 degC)
+TMIN_0    = 'c' 0x6E 0x58 0;         # Mimimum temperatures (0.1 degC)
+TMIN_1    = 'c' 0x6E 0x58 1;
+TMIN_2    = 'c' 0x6E 0x58 2;
+TMIN_3    = 'c' 0x6E 0x58 3;
+TMAX_0    = 'c' 0x8A 0x1C 0;         # Maximum temperatures (0.1 degC)
+TMAX_1    = 'c' 0x8A 0x1C 1;
+TMAX_2    = 'c' 0x8A 0x1C 2;
+TMAX_3    = 'c' 0x8A 0x1C 3;
+TP_CLEAR  = 'a' 0xD3 0xDB 0 0 0 0 1; # Reset all min/max markers for temperature & pressure 
+TEMP_ERR  = 'c' 0x6E 0x2D 0;         # 1 if any temperature sensor has failed
+
+PRES_0    = 'c' 0xAA 0x50 0;         # High side pressure (0.1 PSIA)
+PRES_1    = 'c' 0xAA 0x50 1;         # Low side pressure (0.1 PSIA)
+PMIN_0    = 'c' 0x5E 0x0B 0;         # Minimum pressures (0.1 PSIA)
+PMIN_1    = 'c' 0x5E 0x0B 1;
+PMAX_0    = 'c' 0x7A 0x62 0;         # Maximum pressures (0.1 PSIA)
+PMAX_1    = 'c' 0x7A 0x62 1;
+PRES_ERR  = 'c' 0xF8 0x2B 0;         # 1 if any pressure sensor has failed
+H_ALP     = 'c' 0xBB 0x94 0;         # Average low side pressure (0.1 PSIA)
+H_AHP     = 'c' 0x7E 0x90 0;         # Average high side pressure (0.1 PSIA)
+H_ADP     = 'c' 0x31 0x9C 0;         # Average delta pressure (0.1 PSIA)
+H_DPAC    = 'c' 0x66 0xFA 0;         # 1st derivative of high side pressure ("bounce")(0.1 PSIA)
+
+DIODE_V   = 'c' 0x8E 0xEA 0;         # Diode voltage reading (uV)
+DIODE_T0  = 'c' 0x58 0x13 0;         # Diode temperature readings (0.01 K)
+DIODE_T1  = 'c' 0x58 0x13 1;
+DIODE_E0  = 'c' 0xD6 0x44 0;         # True if diode failed
+DIODE_E1  = 'c' 0xD6 0x44 1;
+DCAL_SEL  = 'c' 0x99 0x65 0;         # True if using custom curve
+
+EV_START  = 'a' 0xD5 0x01 0 0 0 0 1; # Write 1 to start compressor 
+EV_STOP   = 'a' 0xC5 0x98 0 0 0 0 0; # Write 0 to stop compressor 
 COMP_ON   = 'c' 0x5F 0x95 0;         # True if compessor is on
 ERR_CODE  = 'c' 0x65 0xA4 0;         # 0 = no error
-COMP_MIN  = 'c' 0x45 0x4C 0;         # Elapsed compressor minutes
 
-
-# TEMP_0    = 'c' 0x0D 0x8F 0;         # Input water temperature (0.1 degC)
-# TEMP_1    = 'c' 0x0D 0x8F 1;         # Output water temperature (0.1 degC)
-# TEMP_2    = 'c' 0x0D 0x8F 2;         # Helium temperature (0.1 degC)
-# TEMP_3    = 'c' 0x0D 0x8F 3;         # Oil temperature (0.1 degC)
-# H_ALP     = 'c' 0xBB 0x94 0;         # Average low side pressure (0.1 PSIA)
-# H_AHP     = 'c' 0x7E 0x90 0;         # Average high side pressure (0.1 PSIA)
-
-
-
-
+#test { out "%s"; in "%40c"; }
 test { out "%s%1!"; in "%1!%40c"; }
 
 #
 # Extract the CMD_RSP byte on mismatch
 #
-@mismatch  { in "%1!" STX $ADR "%(\$1COMMAND_RESPONSE.VAL)01r%*30c"; }
-
+@mismatch  { in "%1!" STX $ADR "%(\$1:CMDRSP.VAL)01r%*30c"; }
 # This a binary communications protocol, which described in the CP2800 Compressors wiki page.
 
-prod_id { 
-    out STX $ADR 0x30 "%01<sum8>%1!"; # start of text - ADR byte - address for prod id value - name of machine (e.g. IN:NDXHIFI)
-    in "%*1!" STX $ADR 0x31 "%40c"; # start of text - ADR byte - address for prod id value - machine product id
-    wait $DLY;
-}
+#
+# SMDP commands
+# USE STRINGS FOR NOW
+#
+prod_id { out STX $ADR 0x30 "%01<sum8>%1!"; in "%*1!" STX $ADR 0x31 "%40c"; wait $DLY; }
+version { out STX $ADR 0x40 "%01<sum8>%1!"; in "%*1!" STX $ADR 0x41 "%40c"; wait $DLY; }
+reset   { out STX $ADR 0x50 "%01<sum8>%1!";                                 wait $DLY; 
+          out STX $ADR 0x60 "%01<sum8>%1!";                                 wait $DLY; }
+ack_pf  { out STX $ADR 0x60 "%01<sum8>%1!";                                 wait $DLY; }
+prot_v  { out STX $ADR 0x70 "%01<sum8>%1!"; in "%*1!" STX $ADR 0x71 "%40c"; wait $DLY; }
 
-comp_on  { 
-    out $CP_CMD $COMP_ON  "%01<sum8>%1!"; # CMD start - address for comp on value - name of machine (e.g. IN:NDXHIFI)
-    in "%1!" $CP_RSP $COMP_ON  "%4r%01<sum8>"; # RSP start - comp on address - ‘1’ if compressor is on, else 0
-    wait $DLY; 
-}
+# 
+# CP2800 commands
+#
+code_sum { out $CP_CMD $CODE_SUM "%01<sum8>%1!"; in "%1!" $CP_RSP $CODE_SUM "%4r%01<sum8>"; wait $DLY; }
+mem_loss { out $CP_CMD $MEM_LOSS "%01<sum8>%1!"; in "%1!" $CP_RSP $MEM_LOSS "%4r%01<sum8>"; wait $DLY; }
+cpu_temp { out $CP_CMD $CPU_TEMP "%01<sum8>%1!"; in "%1!" $CP_RSP $CPU_TEMP "%4r%01<sum8>"; wait $DLY; }
+batt_ok  { out $CP_CMD $BATT_OK  "%01<sum8>%1!"; in "%1!" $CP_RSP $BATT_OK  "%4r%01<sum8>"; wait $DLY; }
+batt_low { out $CP_CMD $BATT_LOW "%01<sum8>%1!"; in "%1!" $CP_RSP $BATT_LOW "%4r%01<sum8>"; wait $DLY; }
+comp_min { out $CP_CMD $COMP_MIN "%01<sum8>%1!"; in "%1!" $CP_RSP $COMP_MIN "%4r%01<sum8>"; wait $DLY; }
+mot_cur  { out $CP_CMD $MOT_CUR  "%01<sum8>%1!"; in "%1!" $CP_RSP $MOT_CUR  "%4r%01<sum8>"; wait $DLY; }
 
-err_code { 
-    out $CP_CMD $ERR_CODE "%01<sum8>%1!"; # CMD start - address for error code value - name of machine (e.g. IN:NDXHIFI)
-    in "%1!" $CP_RSP $ERR_CODE "%4r%01<sum8>"; # RSP start - error code address - error code (see below)
-    wait $DLY; 
-}
+ri_start { out $CP_CMD $RI_START "%01<sum8>%1!"; in "%1!" $CP_RSP $RI_START "%4r%01<sum8>"; wait $DLY; }
+ri_stop  { out $CP_CMD $RI_STOP  "%01<sum8>%1!"; in "%1!" $CP_RSP $RI_STOP  "%4r%01<sum8>"; wait $DLY; }
+ri_ilok  { out $CP_CMD $RI_ILOK  "%01<sum8>%1!"; in "%1!" $CP_RSP $RI_ILOK  "%4r%01<sum8>"; wait $DLY; }
+ri_slvl  { out $CP_CMD $RI_SLVL  "%01<sum8>%1!"; in "%1!" $CP_RSP $RI_SLVL  "%4r%01<sum8>"; wait $DLY; }
 
-comp_min { 
-    out $CP_CMD $COMP_MIN "%01<sum8>%1!"; # CMD start - address for comp min value - name of machine (e.g. IN:NDXHIFI)
-    in "%1!" $CP_RSP $COMP_MIN "%4r%01<sum8>"; # RSP start - address for comp min value - elapsed time compressors has been running in minutes
-    wait $DLY; 
-}
+temp_0   { out $CP_CMD $TEMP_0   "%01<sum8>%1!"; in "%1!" $CP_RSP $TEMP_0   "%4r%01<sum8>"; wait $DLY; }
+temp_1   { out $CP_CMD $TEMP_1   "%01<sum8>%1!"; in "%1!" $CP_RSP $TEMP_1   "%4r%01<sum8>"; wait $DLY; }
+temp_2   { out $CP_CMD $TEMP_2   "%01<sum8>%1!"; in "%1!" $CP_RSP $TEMP_2   "%4r%01<sum8>"; wait $DLY; }
+temp_3   { out $CP_CMD $TEMP_3   "%01<sum8>%1!"; in "%1!" $CP_RSP $TEMP_3   "%4r%01<sum8>"; wait $DLY; }
+tmin_0   { out $CP_CMD $TMIN_0   "%01<sum8>%1!"; in "%1!" $CP_RSP $TMIN_0   "%4r%01<sum8>"; wait $DLY; }
+tmin_1   { out $CP_CMD $TMIN_1   "%01<sum8>%1!"; in "%1!" $CP_RSP $TMIN_1   "%4r%01<sum8>"; wait $DLY; }
+tmin_2   { out $CP_CMD $TMIN_2   "%01<sum8>%1!"; in "%1!" $CP_RSP $TMIN_2   "%4r%01<sum8>"; wait $DLY; }
+tmin_3   { out $CP_CMD $TMIN_3   "%01<sum8>%1!"; in "%1!" $CP_RSP $TMIN_3   "%4r%01<sum8>"; wait $DLY; }
+tmax_0   { out $CP_CMD $TMAX_0   "%01<sum8>%1!"; in "%1!" $CP_RSP $TMAX_0   "%4r%01<sum8>"; wait $DLY; }
+tmax_1   { out $CP_CMD $TMAX_1   "%01<sum8>%1!"; in "%1!" $CP_RSP $TMAX_1   "%4r%01<sum8>"; wait $DLY; }
+tmax_2   { out $CP_CMD $TMAX_2   "%01<sum8>%1!"; in "%1!" $CP_RSP $TMAX_2   "%4r%01<sum8>"; wait $DLY; }
+tmax_3   { out $CP_CMD $TMAX_3   "%01<sum8>%1!"; in "%1!" $CP_RSP $TMAX_3   "%4r%01<sum8>"; wait $DLY; }
+tp_clear { out $CP_CMD $TP_CLEAR "%01<sum8>%1!";                                            wait $DLY; } 
+temp_err { out $CP_CMD $TEMP_ERR "%01<sum8>%1!"; in "%1!" $CP_RSP $TEMP_ERR "%4r%01<sum8>"; wait $DLY; }
+
+pres_0   { out $CP_CMD $PRES_0   "%01<sum8>%1!"; in "%1!" $CP_RSP $PRES_0   "%4r%01<sum8>"; wait $DLY; }
+pres_1   { out $CP_CMD $PRES_1   "%01<sum8>%1!"; in "%1!" $CP_RSP $PRES_1   "%4r%01<sum8>"; wait $DLY; }
+pmin_0   { out $CP_CMD $PMIN_0   "%01<sum8>%1!"; in "%1!" $CP_RSP $PMIN_0   "%4r%01<sum8>"; wait $DLY; }
+pmin_1   { out $CP_CMD $PMIN_1   "%01<sum8>%1!"; in "%1!" $CP_RSP $PMIN_1   "%4r%01<sum8>"; wait $DLY; }
+pmax_0   { out $CP_CMD $PMAX_0   "%01<sum8>%1!"; in "%1!" $CP_RSP $PMAX_0   "%4r%01<sum8>"; wait $DLY; }
+pmax_1   { out $CP_CMD $PMAX_1   "%01<sum8>%1!"; in "%1!" $CP_RSP $PMAX_1   "%4r%01<sum8>"; wait $DLY; }
+pres_err { out $CP_CMD $PRES_ERR "%01<sum8>%1!"; in "%1!" $CP_RSP $PRES_ERR "%4r%01<sum8>"; wait $DLY; }
+h_alp    { out $CP_CMD $H_ALP    "%01<sum8>%1!"; in "%1!" $CP_RSP $H_ALP    "%4r%01<sum8>"; wait $DLY; }
+h_ahp    { out $CP_CMD $H_AHP    "%01<sum8>%1!"; in "%1!" $CP_RSP $H_AHP    "%4r%01<sum8>"; wait $DLY; }
+h_adp    { out $CP_CMD $H_ADP    "%01<sum8>%1!"; in "%1!" $CP_RSP $H_ADP    "%4r%01<sum8>"; wait $DLY; }
+h_dpac   { out $CP_CMD $H_DPAC   "%01<sum8>%1!"; in "%1!" $CP_RSP $H_DPAC   "%4r%01<sum8>"; wait $DLY; }
+
+diode_v  { out $CP_CMD $DIODE_V  "%01<sum8>%1!"; in "%1!" $CP_RSP $DIODE_V  "%4r%01<sum8>"; wait $DLY; }
+diode_t0 { out $CP_CMD $DIODE_T0 "%01<sum8>%1!"; in "%1!" $CP_RSP $DIODE_T0 "%4r%01<sum8>"; wait $DLY; }
+diode_t1 { out $CP_CMD $DIODE_T1 "%01<sum8>%1!"; in "%1!" $CP_RSP $DIODE_T1 "%4r%01<sum8>"; wait $DLY; }
+diode_e0 { out $CP_CMD $DIODE_E0 "%01<sum8>%1!"; in "%1!" $CP_RSP $DIODE_E0 "%4r%01<sum8>"; wait $DLY; }
+diode_e1 { out $CP_CMD $DIODE_E1 "%01<sum8>%1!"; in "%1!" $CP_RSP $DIODE_E1 "%4r%01<sum8>"; wait $DLY; }
+dcal_sel { out $CP_CMD $DCAL_SEL "%01<sum8>%1!"; in "%1!" $CP_RSP $DCAL_SEL "%4r%01<sum8>"; wait $DLY; }
+
+ev_start { out $CP_CMD $EV_START "%01<sum8>%1!";                                            wait $DLY; }
+ev_stop  { out $CP_CMD $EV_STOP  "%01<sum8>%1!";                                            wait $DLY; }
+comp_on  { out $CP_CMD $COMP_ON  "%01<sum8>%1!"; in "%1!" $CP_RSP $COMP_ON  "%4r%01<sum8>"; wait $DLY; }
+err_code { out $CP_CMD $ERR_CODE "%01<sum8>%1!"; in "%1!" $CP_RSP $ERR_CODE "%4r%01<sum8>"; wait $DLY; }
 
 #
 # ERROR CODES
@@ -84,3 +162,4 @@ comp_min {
 # 3 5V power too high - occurs if power is below 4.75V. Contact factory
 # 4 compressor is in lockout mode due to too many errors in a certain time. Cannot restart until a code is enterred. Contact factory 
 # 5 order of phase power is wrong. Rewire the compressor input by switching around 2 of the power wires
+
